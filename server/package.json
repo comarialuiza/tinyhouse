@@ -1,0 +1,10 @@
+{
+	"name": "tinyhouse-v1-server",
+	"version": "0.1.0",
+	"scripts": {
+		"start": "nodemon src/"	
+	},
+	"devDependencies": {
+		"nodemon": "^2.0.7"
+	}
+}
