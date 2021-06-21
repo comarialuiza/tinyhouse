@@ -1,9 +1,9 @@
 import React from 'react';
 import { server } from '../../lib/api/server';
+import useQuery from '../../lib/api/useQuery';
 import {
-    ListingsData,
     DeleteListingData,
-    DeleteListingVariables
+    DeleteListingVariables, ListingsData
 } from './types';
 
 const LISTINGS = `
@@ -30,28 +30,32 @@ const DELETE_LISTING = `
 `;
 
 const Listings = () => {
-    const fetchListings = async () => {
-        const { data } = await server.fetch<ListingsData>({ query: LISTINGS });
+    const { data, refetch } = useQuery<ListingsData>(LISTINGS);
+    const listings = data ? data.listings : null;
 
-        console.log(data);
-    }
-
-    const deleteListings = async () => {
-        const { data } = await server.fetch<DeleteListingData, DeleteListingVariables>({
+    const deleteListing = async (id: string) => {
+        await server.fetch<DeleteListingData, DeleteListingVariables>({
             query: DELETE_LISTING,
             variables: {
-                id: "60c5663ce625170dbcc65e4d"
+                id
             }
         });
 
-        console.log(data);
-    }
+        refetch();
+    };
+
+    const listingsList = listings ?
+        listings.map(listing => (
+            <li key={ listing.id }>
+                { listing.title }
+                <button onClick={ () => deleteListing(listing.id) }>Delete</button>
+            </li>
+        )) : null;
 
     return (
-        <>
-            <button onClick={ fetchListings }>Fetch listings</button>
-            <button onClick={ deleteListings }>Delete listings</button>
-        </>
+        <ul>
+            { listingsList }
+        </ul>
     );
 };
 
