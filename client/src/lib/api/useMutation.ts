@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useReducer } from 'react';
+import { useState, useReducer } from 'react';
 import { server } from './server';
 
 interface State<TData> {
@@ -7,14 +7,14 @@ interface State<TData> {
     error: boolean;
 }
 
+type MutationTuple<TData, TVariables> = [
+    (variables?: TVariables | undefined ) => Promise<void>, State<TData>
+];
+
 type Action<TData> =
     { type: 'FETCH' } |
     { type: 'FETCH_SUCCESS', payload: TData } |
     { type: 'FETCH_ERROR' };
-
-interface QueryResult<TData> extends State<TData> {
-    refetch: () => void;
-}
 
 const reducer = <TData>() => (
     state: State<TData>,
@@ -32,7 +32,7 @@ const reducer = <TData>() => (
     }
 }
 
-const useQuery = <TData = any>(query: string): QueryResult<TData> => {
+const useMutation = <TData = any, TVariables = any>(query: string): MutationTuple<TData, TVariables> => {
     const fetchReducer = reducer<TData>();
 
     const [state, dispatch] = useReducer(fetchReducer, {
@@ -41,31 +41,25 @@ const useQuery = <TData = any>(query: string): QueryResult<TData> => {
         error: false
     });
 
-    const fetch = useCallback(() => {
+    const fetch = async (variables?: TVariables) => {
         try {
             dispatch({ type: 'FETCH' });
-            const fetchApi = async () => {
-                const { data, error } = await server.fetch<TData>({ query });
 
-                if (error && error.length) {
-                    throw new Error(error[0].message);
-                }
+            const { data, error } = await server.fetch<TData, TVariables>({ query, variables });
 
-                dispatch({ type: 'FETCH_SUCCESS', payload: data });
-            };
+            if (error && error.length) {
+                throw new Error(error[0].message);
+            }
 
-            fetchApi();
-        } catch(err) {
+            dispatch({ type: 'FETCH_SUCCESS', payload: data });
+        } catch (err) {
             dispatch({ type: 'FETCH_ERROR' });
+
             throw console.error(err);
         }
-    }, [query]);
+    };
 
-    useEffect(() => {
-        fetch();
-    }, [fetch]);
-
-    return { ...state, refetch: fetch };
+    return [fetch, state];
 };
 
-export default useQuery;
+export default useMutation;
